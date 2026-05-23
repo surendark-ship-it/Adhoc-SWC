@@ -152,106 +152,23 @@ let selectedInsp= null;
 let cityChart   = null;
 const miniCharts= {};
 
-// ── Fetch & Parse Google Sheet CSV ─────────────────────────
+// ── Fetch data from Apps Script proxy ─────────────────────
+// Apps Script handles all data processing server-side
+// No sheet permissions needed — runs as the sheet owner
 async function fetchSheetData() {
-  const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(CONFIG.DUMP_TAB)}`;
-  const res  = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status} — make sure sheet is set to "Anyone with link can view"`);
-  const text = await res.text();
-  return parseCSV(text);
-}
-
-function parseCSV(text) {
-  const lines = text.trim().split('\n');
-  const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim());
-  return lines.slice(1).map(line => {
-    // Handle quoted fields properly
-    const vals = [];
-    let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      if (line[i] === '"') { inQ = !inQ; }
-      else if (line[i] === ',' && !inQ) { vals.push(cur.trim()); cur = ''; }
-      else { cur += line[i]; }
-    }
-    vals.push(cur.trim());
-    const row = {};
-    headers.forEach((h,i) => row[h] = vals[i] || '');
-    return row;
-  });
-}
-
-// ── Process raw rows into inspector profiles ───────────────
-function processData(rows) {
-  // Filter: 4 cities + only BA Miss and Inspector Miss in CGT
-  const filtered = rows.filter(r =>
-    CONFIG.CITIES.includes(r.workshop_name) &&
-    CONFIG.INCLUDE_TYPES.includes(r.adhoc_type)
-  );
-
-  const result = {};
-
-  for (const city of CONFIG.CITIES) {
-    const cityRows = filtered.filter(r => r.workshop_name === city);
-    const inspectors = [...new Set(cityRows.map(r => r.i3_inspector))].sort();
-
-    const inspList = inspectors.map(insp => {
-      const g = cityRows.filter(r => r.i3_inspector === insp);
-
-      // Monthly counts
-      const monthly = CONFIG.MONTHS.map(m => {
-        const [mon, yr] = m.split(' ');
-        const MONTH_MAP = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
-        return g.filter(r => {
-          if (!r.Date && !r.request_created_at) return false;
-          const d = new Date(r.Date || r.request_created_at);
-          return d.getFullYear() === parseInt(yr) && d.getMonth() === MONTH_MAP[mon];
-        }).length;
-      });
-
-      const ba      = g.filter(r => r.adhoc_type === 'BA Miss').length;
-      const inspMiss= g.filter(r => r.adhoc_type === 'Inspector Miss in Cgt Universe').length;
-      const total   = g.length;
-
-      // Top 5 parts
-      const partCounts = {};
-      g.forEach(r => { if(r.node_name) partCounts[r.node_name] = (partCounts[r.node_name]||0)+1; });
-      const top5 = Object.entries(partCounts).sort((a,b)=>b[1]-a[1]).slice(0,5)
-        .map(([part,count]) => ({part, count}));
-
-      // Trend: compare last 2 available months
-      const nonZero = monthly.filter(v => v > 0);
-      const lastTwo = monthly.slice(-2).filter(v => v > 0);
-      const trend = lastTwo.length < 2 ? 'Stable' :
-        lastTwo[1] > lastTwo[0]*1.15 ? 'Worsening' :
-        lastTwo[1] < lastTwo[0]*0.85 ? 'Improving' : 'Stable';
-
-      return {
-        name: insp, total, ba, inspMiss,
-        baPct:    total ? +(ba/total*100).toFixed(1) : 0,
-        inspPct:  total ? +(inspMiss/total*100).toFixed(1) : 0,
-        monthly, top5, trend,
-        lastMonth: monthly[monthly.length-1],
-        prevMonth: monthly[monthly.length-2] || 0,
-      };
-    }).filter(i => i.total > 0).sort((a,b) => b.total - a.total);
-
-    // City monthly totals
-    const cityMonthly = CONFIG.MONTHS.map(m => {
-      const [mon, yr] = m.split(' ');
-      const MONTH_MAP = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
-      return cityRows.filter(r => {
-        const d = new Date(r.Date || r.request_created_at);
-        return d.getFullYear() === parseInt(yr) && d.getMonth() === MONTH_MAP[mon];
-      }).length;
-    });
-
-    const totalAdhoc  = cityRows.length;
-    const avgPerInsp  = inspList.length ? +(totalAdhoc / inspList.length).toFixed(1) : 0;
-    const worsening   = inspList.filter(i => i.trend === 'Worsening').length;
-
-    result[city] = { inspectors: inspList, monthly: cityMonthly, total: totalAdhoc, avgPerInsp, worsening };
+  if (!CONFIG.APPS_SCRIPT_URL || CONFIG.APPS_SCRIPT_URL.includes('AKfycbyBlLOeco5oBL3mBWOmszPoL8oFEmtH1CH7CcLdbzs1Hu45TxTTedHu0hfCNb59zCI')) {
+    throw new Error('https://script.google.com/a/macros/spinny.com/s/AKfycbyBlLOeco5oBL3mBWOmszPoL8oFEmtH1CH7CcLdbzs1Hu45TxTTedHu0hfCNb59zCI/exec');
   }
-  return result;
+  const res = await fetch(CONFIG.APPS_SCRIPT_URL);
+  if (!res.ok) throw new Error(`Apps Script error: HTTP ${res.status}`);
+  const data = await res.json();
+  if (data.error) throw new Error('Apps Script: ' + data.error);
+  return data;
+}
+
+// processData is handled by Apps Script — just return the data
+function processData(data) {
+  return data.cities ? data : null;
 }
 
 // ── Render city tabs ───────────────────────────────────────
@@ -531,8 +448,10 @@ Under 200 words. Direct. Use actual numbers and part names from the data above.`
 // ── INIT ───────────────────────────────────────────────────
 async function init() {
   try {
-    const rows = await fetchSheetData();
-    allData = processData(rows);
+    const raw = await fetchSheetData();
+    allData = raw.cities ? raw.cities : processData(raw);
+    // Update months from server response if available
+    if (raw.months) CONFIG.MONTHS = raw.months;
 
     // Update header
     document.getElementById('lastUpdated').textContent =
