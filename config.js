@@ -6,7 +6,7 @@ const CONFIG = {
   // ── IMPORTANT: Paste your Apps Script Web App URL here ──
   // After deploying the Apps Script, copy the URL and paste below
   // It looks like: https://script.google.com/macros/s/AKfycb.../exec
-  APPS_SCRIPT_URL: "YOUR_DEPLOYMENT_URL_HERE",
+  APPS_SCRIPT_URL: "https://script.google.com/a/macros/spinny.com/s/AKfycbyBlLOeco5oBL3mBWOmszPoL8oFEmtH1CH7CcLdbzs1Hu45TxTTedHu0hfCNb59zCI/exec",
 
   // Your Google Sheet ID (for reference only — Apps Script uses it internally)
   SHEET_ID: "1PD-RBvn1UT0WJy_cpknGyLr7AC1HQcnvUwhQroHUENM",
