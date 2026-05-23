@@ -3,10 +3,15 @@
 // ─────────────────────────────────────────────────────────
 
 const CONFIG = {
-  // Your Google Sheet ID (from the URL)
+  // ── IMPORTANT: Paste your Apps Script Web App URL here ──
+  // After deploying the Apps Script, copy the URL and paste below
+  // It looks like: https://script.google.com/macros/s/AKfycb.../exec
+  APPS_SCRIPT_URL: "YOUR_DEPLOYMENT_URL_HERE",
+
+  // Your Google Sheet ID (for reference only — Apps Script uses it internally)
   SHEET_ID: "1PD-RBvn1UT0WJy_cpknGyLr7AC1HQcnvUwhQroHUENM",
 
-  // Tab name in your sheet that has the raw data
+  // Tab name (used by Apps Script — no need to change)
   DUMP_TAB: "dump",
 
   // Cities to show (must match workshop_name exactly in your sheet)
