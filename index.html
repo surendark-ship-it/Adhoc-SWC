@@ -1291,7 +1291,9 @@ function renderAdhoc(profiles,area,avg,color,fr) {
 }
 
 // NODES
+let currentNodeFr=[];
 function renderNodes(area,fr) {
+  currentNodeFr=fr;
   const nm={};
   fr.forEach(r=>{if(r[4]>=0)nm[r[4]]=(nm[r[4]]||0)+1;});
   const sorted=Object.entries(nm).sort((a,b)=>b[1]-a[1]).slice(0,30);
@@ -1305,7 +1307,7 @@ function renderNodes(area,fr) {
           const c=fr.filter(r=>r[4]===+ni&&r[3]===ti).length;
           return c?`<span class="bdg b${ti}">${TSHORT[ti]}: ${c}</span>`:'';
         }).join('');
-        return `<tr style="cursor:pointer" onclick="openNodeInspectors(${ni})"
+        return `<tr style="cursor:pointer" onclick="openNodeInspectors(${ni}, currentNodeFr)"
           onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''">
           <td style="color:#94a3b8;font-weight:700">${i+1}</td>
           <td style="font-weight:600;color:#1d4ed8">${NOD[ni]}</td>
@@ -1315,8 +1317,7 @@ function renderNodes(area,fr) {
     </table></div>`;
 }
 
-function openNodeInspectors(ni) {
-  const fr = typed(filteredRows());
+function openNodeInspectors(ni, fr) {
   const rows = fr.filter(r=>r[4]===ni);
   const partName = NOD[ni];
   // Group by inspector
