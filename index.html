@@ -549,7 +549,7 @@ TYP.forEach((t,i) => {
   tfEl.appendChild(b);
 });
 
-document.addEventListener('keydown', e => { if(e.key==='Escape'){closeDrill();closePdfModal();} });
+document.addEventListener('keydown', e => { if(e.key==='Escape'){closeDrill();closePdfModal();closeNodeInspModal();} });
 
 render();
 } // ── end initDashboard() ──
@@ -1305,13 +1305,49 @@ function renderNodes(area,fr) {
           const c=fr.filter(r=>r[4]===+ni&&r[3]===ti).length;
           return c?`<span class="bdg b${ti}">${TSHORT[ti]}: ${c}</span>`:'';
         }).join('');
-        return `<tr><td style="color:#94a3b8;font-weight:700">${i+1}</td>
-          <td style="font-weight:600">${NOD[ni]}</td>
+        return `<tr style="cursor:pointer" onclick="openNodeInspectors(${ni})"
+          onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''">
+          <td style="color:#94a3b8;font-weight:700">${i+1}</td>
+          <td style="font-weight:600;color:#1d4ed8">${NOD[ni]}</td>
           <td style="font-weight:700;color:#1d4ed8;font-size:14px">${cnt}</td>
           <td>${tb}</td></tr>`;
       }).join('')}</tbody>
     </table></div>`;
 }
+
+function openNodeInspectors(ni) {
+  const fr = typed(filteredRows());
+  const rows = fr.filter(r=>r[4]===ni);
+  const partName = NOD[ni];
+  // Group by inspector
+  const inspMap = {};
+  rows.forEach(r=>{
+    const name = INS[r[1]];
+    if(!inspMap[name]) inspMap[name]={total:0,types:{}};
+    inspMap[name].total++;
+    const tname = TYP[r[3]]||'Unknown';
+    inspMap[name].types[tname]=(inspMap[name].types[tname]||0)+1;
+  });
+  const sorted = Object.entries(inspMap).sort((a,b)=>b[1].total-a[1].total);
+  const rows_html = sorted.map(([name,d],i)=>{
+    const tbadges = Object.entries(d.types).map(([t,c])=>{
+      const ti=TYP.indexOf(t);
+      return `<span class="bdg b${ti>=0?ti:0}">${TSHORT[ti>=0?ti:0]}: ${c}</span>`;
+    }).join(' ');
+    return `<tr style="${i%2?'background:#f8fafc':''}">
+      <td style="padding:8px 12px;font-weight:700;color:#94a3b8">${i+1}</td>
+      <td style="padding:8px 12px;font-weight:600">${name}</td>
+      <td style="padding:8px 12px;font-weight:700;color:#1d4ed8">${d.total}</td>
+      <td style="padding:8px 12px">${tbadges}</td>
+    </tr>`;
+  }).join('');
+  const modal = document.getElementById('nodeInspModal');
+  document.getElementById('nodeInspTitle').textContent = partName;
+  document.getElementById('nodeInspCount').textContent = sorted.length + ' inspector' + (sorted.length!==1?'s':'');
+  document.getElementById('nodeInspBody').innerHTML = rows_html;
+  modal.style.display='flex';
+}
+function closeNodeInspModal(){document.getElementById('nodeInspModal').style.display='none';}
 
 // BEST CGT
 function renderBest(profiles,area) {
@@ -1602,6 +1638,7 @@ function saveCGT() { closeCGT(); render(); }
 function closeCGT() { const m=document.getElementById('cgtModal'); if(m) m.style.display='none'; }
 
 // ── Expose functions to global scope for HTML onclick handlers ──
+window.openNodeInspectors=openNodeInspectors; window.closeNodeInspModal=closeNodeInspModal;
 window.sv=sv; window.sg=sg; window.setQ=setQ; window.applyDates=applyDates;
 window.toggleCmp=toggleCmp; window.toggleTrend=toggleTrend; window.toggleCmpTable=toggleCmpTable;
 window.openPdf=openPdf; window.closePdfModal=closePdfModal; window.doPrint=doPrint;
@@ -1612,5 +1649,34 @@ window.openDrill=openDrill; window.render=render;
 // ── Kick everything off ──
 loadData();
 </script>
+
+<!-- Node Inspector Modal -->
+<div id="nodeInspModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.5);
+  z-index:9000;align-items:center;justify-content:center" onclick="if(event.target===this)closeNodeInspModal()">
+  <div style="background:#fff;border-radius:12px;width:min(700px,95vw);max-height:80vh;
+    display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+    <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px">
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:700;color:#1e293b" id="nodeInspTitle"></div>
+        <div style="font-size:12px;color:#64748b;margin-top:2px" id="nodeInspCount"></div>
+      </div>
+      <button onclick="closeNodeInspModal()" style="border:none;background:#f1f5f9;border-radius:6px;
+        padding:6px 12px;cursor:pointer;font-size:13px;color:#64748b">✕ Close</button>
+    </div>
+    <div style="overflow-y:auto;flex:1">
+      <table style="width:100%;border-collapse:collapse">
+        <thead style="position:sticky;top:0;background:#f8fafc">
+          <tr>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;color:#64748b;font-weight:700">#</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;color:#64748b;font-weight:700">INSPECTOR</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;color:#64748b;font-weight:700">COUNT</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;color:#64748b;font-weight:700">TYPE</th>
+          </tr>
+        </thead>
+        <tbody id="nodeInspBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 </body>
 </html>
