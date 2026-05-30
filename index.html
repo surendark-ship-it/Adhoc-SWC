@@ -571,9 +571,9 @@ function setQ(q) {
     from.setDate(latest.getDate()-1);
     to.setDate(latest.getDate()-1);
   }
-  if(q==='5')  from.setDate(latest.getDate()-4);
-  if(q==='10') from.setDate(latest.getDate()-9);
-  if(q==='30') from.setDate(latest.getDate()-29);
+  if(q==='5')  { from.setDate(latest.getDate()-5); to.setDate(latest.getDate()-1); }
+  if(q==='10') { from.setDate(latest.getDate()-10); to.setDate(latest.getDate()-1); }
+  if(q==='30') { from.setDate(latest.getDate()-30); to.setDate(latest.getDate()-1); }
   const fmt = d => d.getFullYear()+'-'+(''+(d.getMonth()+1)).padStart(2,'0')+'-'+(''+(d.getDate())).padStart(2,'0');
   dFrom = fmt(from); dTo = fmt(to);
   document.getElementById('df').value = dFrom;
