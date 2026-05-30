@@ -512,10 +512,15 @@ const miniCharts = {};
 // ════════════════════════════════════════════════════════
 function initDashboard() {
 CGT_INSPECTORS = D.cgt_inspectors || {};
+// Default view: first_date → yesterday (latest_date - 1) to exclude today's partial data
+const _latest = new Date(D.latest_date);
+const _yest   = new Date(_latest); _yest.setDate(_latest.getDate()-1);
+const _fmt    = d => d.getFullYear()+'-'+(''+(d.getMonth()+1)).padStart(2,'0')+'-'+(''+(d.getDate())).padStart(2,'0');
+const _yesterday = _fmt(_yest);
 document.getElementById('df').value = D.first_date;
-document.getElementById('dt').value = D.latest_date;
+document.getElementById('dt').value = _yesterday;
 dFrom = D.first_date;
-dTo   = D.latest_date;
+dTo   = _yesterday;
 updateLabel();
 
 // City tabs
@@ -565,15 +570,14 @@ function updateLabel() {
 
 function setQ(q) {
   const latest = new Date(D.latest_date);
-  let from = new Date(latest);
-  let to   = new Date(latest);
-  if(q==='yesterday'){
-    from.setDate(latest.getDate()-1);
-    to.setDate(latest.getDate()-1);
-  }
-  if(q==='5')  { from.setDate(latest.getDate()-5); to.setDate(latest.getDate()-1); }
-  if(q==='10') { from.setDate(latest.getDate()-10); to.setDate(latest.getDate()-1); }
-  if(q==='30') { from.setDate(latest.getDate()-30); to.setDate(latest.getDate()-1); }
+  // yesterday = latest_date - 1 (always excludes today's partial data)
+  const yest = new Date(latest); yest.setDate(latest.getDate()-1);
+  let from = new Date(yest);
+  let to   = new Date(yest);
+  if(q==='yesterday'){ /* from=yest, to=yest — already set */ }
+  if(q==='5')  from.setDate(yest.getDate()-4);
+  if(q==='10') from.setDate(yest.getDate()-9);
+  if(q==='30') from.setDate(yest.getDate()-29);
   const fmt = d => d.getFullYear()+'-'+(''+(d.getMonth()+1)).padStart(2,'0')+'-'+(''+(d.getDate())).padStart(2,'0');
   dFrom = fmt(from); dTo = fmt(to);
   document.getElementById('df').value = dFrom;
