@@ -567,7 +567,10 @@ function setQ(q) {
   const latest = new Date(D.latest_date);
   let from = new Date(latest);
   let to   = new Date(latest);
-  if(q==='yesterday'){ /* latest_date IS yesterday — no offset needed */ }
+  if(q==='yesterday'){
+    from.setDate(latest.getDate()-1);
+    to.setDate(latest.getDate()-1);
+  }
   if(q==='5')  from.setDate(latest.getDate()-4);
   if(q==='10') from.setDate(latest.getDate()-9);
   if(q==='30') from.setDate(latest.getDate()-29);
